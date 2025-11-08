@@ -11,7 +11,7 @@ export class GoogleService {
         private readonly logger: PinoLogger,
     ) {}
 
-    getOAuth2ClientUrl(): Promise<{ url: string }> {
+    getOAuth2ClientUrl(): { url: string } {
         const authClient = this.getAuthClient()
         return this.getAuthUrl(authClient)
     }
@@ -55,17 +55,5 @@ export class GoogleService {
         const googleUserInfo = await googleAuth.userinfo.get()
         const email = googleUserInfo.data.email!
         return { email, refreshToken, accessToken }
-    }
-}
-
-export interface IGoogleAuthCredentials {
-    web: {
-        client_id: string
-        client_secret: string
-        redirect_uri: string
-        auth_uri: string
-        token_uri: string
-        auth_provider_x509_cert_url: string
-        javascript_origins: string[]
     }
 }
