@@ -36,9 +36,12 @@ export class GoogleService {
         return { url: authorizeUrl }
     }
 
-    async getAuthClientData(
-        code: string,
-    ): Promise<{ email: string; refreshToken: string; accessToken: string }> {
+    async getAuthClientData(code: string): Promise<{
+        email: string
+        name: string
+        refreshToken: string
+        accessToken: string
+    }> {
         const authClient = this.getAuthClient()
         const tokenData = await authClient.getToken(code)
         const tokens = tokenData.tokens
@@ -54,6 +57,7 @@ export class GoogleService {
 
         const googleUserInfo = await googleAuth.userinfo.get()
         const email = googleUserInfo.data.email!
-        return { email, refreshToken, accessToken }
+        const name = googleUserInfo.data.name!
+        return { email, name, refreshToken, accessToken }
     }
 }
