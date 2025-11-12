@@ -46,7 +46,6 @@ export class AuthService {
 
         if (!userExists) {
             isNewUser = true
-            console.log('User doesnt exist. Executing register user logic...')
             const userId = uuid()
             const tempToken = await this.jwtService.signAsync(
                 {

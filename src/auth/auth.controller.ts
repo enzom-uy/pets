@@ -23,17 +23,10 @@ export class AuthController {
         @Query('code') code: string,
         @Res() res: Response,
     ) {
-        const {
-            email,
-            refreshToken,
-            accessToken,
-            name: username,
-        } = await this.authService.getAuthClientData(code)
+        const { email, name: username } =
+            await this.authService.getAuthClientData(code)
 
-        this.logger.info(
-            { username, email, refreshToken, accessToken },
-            'Login with google data',
-        )
+        this.logger.info({ username, email }, 'Login with google data')
 
         const { isNewUser, tempToken } =
             await this.authService.loginOrRegisterUser(email, username)

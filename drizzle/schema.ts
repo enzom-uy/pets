@@ -17,6 +17,12 @@ export const branchesContactInfoTypes = pgEnum('branches_contact_info_types', {
     email: 'email',
 })
 
+export const branchUserRoles = pgEnum('branch_user_roles', [
+    'owner',
+    'manager',
+    'employee',
+])
+
 export const users = pgTable(
     'users',
     {
@@ -103,6 +109,8 @@ export const pets = pgTable(
 
 export const business = pgTable('business', {
     id: varchar({ length: 36 }).primaryKey().notNull(),
+    ownerId: varchar('owner_id', { length: 36 }).notNull(),
+    logoUrl: text('logo_url'),
     name: varchar({ length: 255 }).notNull(),
     description: varchar({ length: 500 }),
     created_at: timestamp('created_at', { mode: 'string' }).defaultNow(),
@@ -128,6 +136,38 @@ export const branches = pgTable(
             name: 'branches_business_id_fkey',
         }).onDelete('cascade'),
         index('branches_city_idx').on(table.city),
+    ],
+)
+
+export const branchUsers = pgTable(
+    'branch_users',
+    {
+        id: varchar({ length: 36 }).primaryKey().notNull(),
+        userId: varchar('user_id', { length: 36 }).notNull(),
+        branchId: varchar('branch_id', { length: 36 }).notNull(),
+        role: branchUserRoles('role').notNull().default('employee'),
+        createdAt: timestamp('created_at', { mode: 'string' })
+            .defaultNow()
+            .notNull(),
+        updated_at: timestamp('updated_at', { mode: 'string' }),
+    },
+    (table) => [
+        foreignKey({
+            columns: [table.userId],
+            foreignColumns: [users.id],
+            name: 'branch_users_user_id_fkey',
+        }).onDelete('cascade'),
+        foreignKey({
+            columns: [table.branchId],
+            foreignColumns: [branches.id],
+            name: 'branch_users_branch_id_fkey',
+        }).onDelete('cascade'),
+        unique('branch_users_user_branch_unique').on(
+            table.userId,
+            table.branchId,
+        ),
+        index('branch_users_user_id_idx').on(table.userId),
+        index('branch_users_branch_id_idx').on(table.branchId),
     ],
 )
 
