@@ -8,9 +8,10 @@ import { AuthService } from '@/auth/auth.service'
 import { DATABASE_CONNECTION } from '@/db/db.module'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { TEMP_TOKEN_COOKIE_OPTIONS } from '@/auth/auth.controller'
-
-const THIRTY_DAYS_MILISECONDS = 30 * 24 * 60 * 60 * 1000
-const ONE_HOUR_MILISECONDS = 60 * 60 * 1000
+import {
+    ONE_HOUR_MILISECONDS,
+    THIRTY_DAYS_MILISECONDS,
+} from '@/constants/constants'
 
 interface UserFromForm {
     name: string

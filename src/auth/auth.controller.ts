@@ -6,12 +6,17 @@ import {
     Redirect,
     Req,
     Res,
+    UseGuards,
 } from '@nestjs/common'
 import { AuthService } from './auth.service'
 import { PinoLogger } from 'nestjs-pino'
 import { JwtService } from '@nestjs/jwt'
 import { Response, Request, CookieOptions } from 'express'
-import * as schema from 'drizzle/schema'
+import { AuthGuard } from './auth.guard'
+import {
+    ONE_HOUR_MILISECONDS,
+    THIRTY_DAYS_MILISECONDS,
+} from '@/constants/constants'
 
 export const CREATE_PROFILE_URL = 'http://localhost:4321/create-profile'
 export const TEMP_TOKEN_COOKIE_OPTIONS = {
@@ -35,6 +40,12 @@ export class AuthController {
         return this.authService.googleAuth()
     }
 
+    @Get('check')
+    @UseGuards(AuthGuard)
+    check() {
+        return 'ok'
+    }
+
     @Get('google/callback')
     async googleAuthCallback(
         @Query('code') code: string,
@@ -49,7 +60,7 @@ export class AuthController {
         const userAgent = req.headers['user-agent'] as string
         const ipAddress = req.ip || 'unknown'
 
-        const { isNewUser, tempToken } =
+        const { isNewUser, tempToken, access_token, refresh_token } =
             await this.authService.loginOrRegisterUser(
                 email,
                 username,
@@ -58,24 +69,47 @@ export class AuthController {
             )
 
         if (isNewUser && tempToken) {
-            // TODO: Additional sign-in logic
-            res.cookie('tempToken', tempToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                maxAge: 5 * 60 * 1000,
-            })
+            res.cookie('tempToken', tempToken, TEMP_TOKEN_COOKIE_OPTIONS)
             return res.redirect(CREATE_PROFILE_URL)
         }
+        res.cookie('access_token', access_token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: ONE_HOUR_MILISECONDS,
+        })
+        res.cookie('refresh_token', refresh_token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: THIRTY_DAYS_MILISECONDS,
+        })
         return res.redirect('http://localhost:4321/')
     }
 
-    @Get('signed-in')
-    signedIn(): { signedIn: boolean } {
-        return { signedIn: true }
-    }
+    @Post('refresh-tokens')
+    async refreshToken(@Req() req: Request, @Res() res: Response) {
+        const oldRefreshToken = req.cookies['refresh_token']
 
-    // TODO: this
-    @Post('create-session')
-    async createUserSession(@Query() user: typeof schema.users.$inferSelect) {}
+        if (!oldRefreshToken) {
+            return res.status(401).json({ error: 'Refresh token not found' })
+        }
+
+        const { newAccessToken, newRefreshToken } =
+            await this.authService.refreshUserTokens(oldRefreshToken)
+
+        res.cookie('access_token', newAccessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: ONE_HOUR_MILISECONDS,
+        })
+        res.cookie('refresh_token', newRefreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: THIRTY_DAYS_MILISECONDS,
+        })
+        return res.status(200).json({ message: 'Tokens refreshed' })
+    }
 }

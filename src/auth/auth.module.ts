@@ -11,8 +11,6 @@ import { UserModule } from '@/user/user.module'
     imports: [
         JwtModule.register({
             global: true,
-            secret: process.env.SECRET_TOKEN,
-            signOptions: { expiresIn: '60s' },
         }),
         forwardRef(() => UserModule),
     ],
