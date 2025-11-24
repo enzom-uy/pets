@@ -10,10 +10,16 @@ import {
 import { AuthService } from './auth.service'
 import { PinoLogger } from 'nestjs-pino'
 import { JwtService } from '@nestjs/jwt'
-import { Response, Request } from 'express'
+import { Response, Request, CookieOptions } from 'express'
 import * as schema from 'drizzle/schema'
 
 export const CREATE_PROFILE_URL = 'http://localhost:4321/create-profile'
+export const TEMP_TOKEN_COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 5 * 60 * 1000,
+} as CookieOptions
 
 @Controller('auth')
 export class AuthController {

@@ -7,6 +7,10 @@ import { SessionService } from '@/session/session.service'
 import { AuthService } from '@/auth/auth.service'
 import { DATABASE_CONNECTION } from '@/db/db.module'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
+import { TEMP_TOKEN_COOKIE_OPTIONS } from '@/auth/auth.controller'
+
+const THIRTY_DAYS_MILISECONDS = 30 * 24 * 60 * 60 * 1000
+const ONE_HOUR_MILISECONDS = 60 * 60 * 1000
 
 interface UserFromForm {
     name: string
@@ -52,12 +56,26 @@ export class UserController {
                     tx,
                 )
 
-                return { createdUser, userTokens, userSession }
+                res.cookie('refresh_token', userTokens.refresh_token, {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: 'strict',
+                    maxAge: THIRTY_DAYS_MILISECONDS,
+                })
+                res.cookie('access_token', userTokens.access_token, {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: 'strict',
+                    maxAge: ONE_HOUR_MILISECONDS,
+                })
+                res.clearCookie('tempToken', TEMP_TOKEN_COOKIE_OPTIONS)
+                return res
+                    .status(201)
+                    .json({ createdUser, userTokens, userSession })
             })
-            return result
         } catch (error) {
             console.error('Error creating user:', error)
-            res.status(500).json({ error: 'Failed to create user' })
+            return res.status(500).json({ error: 'Failed to create user' })
         }
     }
 }
