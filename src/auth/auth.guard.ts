@@ -1,10 +1,19 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common'
+import {
+    CanActivate,
+    ExecutionContext,
+    Injectable,
+    UnauthorizedException,
+} from '@nestjs/common'
 import { Request } from 'express'
 import { JwtService } from '@nestjs/jwt'
+import { PinoLogger } from 'nestjs-pino'
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-    constructor(private jwtService: JwtService) {}
+    constructor(
+        private jwtService: JwtService,
+        private readonly logger: PinoLogger,
+    ) {}
 
     async canActivate(context: ExecutionContext) {
         const request = context.switchToHttp().getRequest<Request>()
@@ -13,7 +22,8 @@ export class AuthGuard implements CanActivate {
         const accessToken = cookies['access_token']
 
         if (!accessToken) {
-            return false
+            this.logger.warn('No access token found')
+            throw new UnauthorizedException('No access token found')
         }
 
         try {
@@ -22,8 +32,8 @@ export class AuthGuard implements CanActivate {
             })
             return true
         } catch (error) {
-            console.log(error)
-            return false
+            this.logger.warn(error, 'Access token verification failed')
+            throw new UnauthorizedException('Access token verification failed')
         }
     }
 }
