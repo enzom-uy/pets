@@ -31,4 +31,28 @@ export class UserService {
             )
         }
     }
+
+    // TODO: test this
+    async createUser(
+        user: typeof schema.users.$inferInsert,
+        tx?: NodePgDatabase<typeof schema>,
+    ) {
+        const db = tx || this.db
+        const userExists = await this.findByEmail(user.email)
+        if (userExists) {
+            throw new Error('User already exists')
+        }
+        try {
+            const createdUser = await db
+                .insert(schema.users)
+                .values(user)
+                .returning()
+
+            return createdUser[0]
+        } catch (error) {
+            throw new InternalServerErrorException(
+                `Error creating user: ${error}`,
+            )
+        }
+    }
 }

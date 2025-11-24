@@ -1,27 +1,101 @@
-import { pgEnum } from 'drizzle-orm/pg-core'
 import {
     pgTable,
-    foreignKey,
-    varchar,
-    timestamp,
-    unique,
-    text,
     index,
+    foreignKey,
+    check,
+    varchar,
     integer,
     time,
     boolean,
+    timestamp,
+    text,
+    unique,
+    pgEnum,
 } from 'drizzle-orm/pg-core'
-
-export const branchesContactInfoTypes = pgEnum('branches_contact_info_types', {
-    phone: 'phone',
-    email: 'email',
-})
+import { sql } from 'drizzle-orm'
 
 export const branchUserRoles = pgEnum('branch_user_roles', [
     'owner',
     'manager',
     'employee',
 ])
+export const branchesContactInfoTypes = pgEnum('branches_contact_info_types', [
+    'phone',
+    'email',
+])
+
+export const branchesHours = pgTable(
+    'branches_hours',
+    {
+        id: varchar({ length: 36 }).primaryKey().notNull(),
+        branchId: varchar('branch_id', { length: 36 }).notNull(),
+        dayOfWeek: integer('day_of_week').notNull(),
+        openTime: time('open_time').notNull(),
+        closeTime: time('close_time').notNull(),
+        isClosed: boolean('is_closed').notNull(),
+    },
+    (table) => [
+        index('branches_hours_is_closed_idx').using(
+            'btree',
+            table.isClosed.asc().nullsLast().op('bool_ops'),
+        ),
+        foreignKey({
+            columns: [table.branchId],
+            foreignColumns: [branches.id],
+            name: 'branches_hours_branch_id_fkey',
+        }).onDelete('cascade'),
+        check('branches_hours_id_not_null', sql`NOT NULL id`),
+        check('branches_hours_branch_id_not_null', sql`NOT NULL branch_id`),
+        check('branches_hours_day_of_week_not_null', sql`NOT NULL day_of_week`),
+        check('branches_hours_open_time_not_null', sql`NOT NULL open_time`),
+        check('branches_hours_close_time_not_null', sql`NOT NULL close_time`),
+        check('branches_hours_is_closed_not_null', sql`NOT NULL is_closed`),
+    ],
+)
+
+export const services = pgTable(
+    'services',
+    {
+        id: varchar({ length: 36 }).primaryKey().notNull(),
+        name: varchar({ length: 255 }).notNull(),
+        createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
+        updatedAt: timestamp('updated_at', { mode: 'string' }),
+    },
+    (table) => [
+        check('services_id_not_null', sql`NOT NULL id`),
+        check('services_name_not_null', sql`NOT NULL name`),
+    ],
+)
+
+export const branches = pgTable(
+    'branches',
+    {
+        id: varchar({ length: 36 }).primaryKey().notNull(),
+        name: varchar({ length: 255 }).notNull(),
+        description: text(),
+        businessId: varchar('business_id', { length: 36 }).notNull(),
+        city: text().notNull(),
+        address: text().notNull(),
+        createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
+        updatedAt: timestamp('updated_at', { mode: 'string' }),
+    },
+    (table) => [
+        index('branches_city_idx').using(
+            'btree',
+            table.city.asc().nullsLast().op('text_ops'),
+        ),
+        foreignKey({
+            columns: [table.businessId],
+            foreignColumns: [business.id],
+            name: 'branches_business_id_fkey',
+        }).onDelete('cascade'),
+        check('branches_id_not_null', sql`NOT NULL id`),
+        check('branches_name_not_null', sql`NOT NULL name`),
+        check('branches_business_id_not_null', sql`NOT NULL business_id`),
+        check('branches_city_not_null', sql`NOT NULL city`),
+        check('branches_address_not_null', sql`NOT NULL address`),
+    ],
+)
 
 export const users = pgTable(
     'users',
@@ -38,31 +112,20 @@ export const users = pgTable(
         updatedAt: timestamp('updated_at', { mode: 'string' }),
     },
     (table) => [
+        index('users_city_idx').using(
+            'btree',
+            table.city.asc().nullsLast().op('text_ops'),
+        ),
+        index('users_email_idx').using(
+            'btree',
+            table.email.asc().nullsLast().op('text_ops'),
+        ),
         unique('users_email_key').on(table.email),
-        index('users_email_idx').on(table.email),
-        index('users_city_idx').on(table.city),
-    ],
-)
-
-export const sessions = pgTable(
-    'sessions',
-    {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
-        userId: varchar('user_id', { length: 36 }).notNull(),
-        token: varchar({ length: 255 }).notNull(),
-        expiresAt: timestamp('expires_at', { mode: 'string' }).notNull(),
-        ipAddress: varchar('ip_address', { length: 50 }),
-        userAgent: varchar('user_agent', { length: 255 }),
-        createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
-        updatedAt: timestamp('updated_at', { mode: 'string' }),
-    },
-    (table) => [
-        foreignKey({
-            columns: [table.userId],
-            foreignColumns: [users.id],
-            name: 'user_sessions_user_id_fkey',
-        }).onDelete('cascade'),
-        unique('user_sessions_token_key').on(table.token),
+        check('users_id_not_null', sql`NOT NULL id`),
+        check('users_name_not_null', sql`NOT NULL name`),
+        check('users_email_not_null', sql`NOT NULL email`),
+        check('users_city_not_null', sql`NOT NULL city`),
+        check('users_created_at_not_null', sql`NOT NULL created_at`),
     ],
 )
 
@@ -71,7 +134,7 @@ export const accounts = pgTable(
     {
         id: varchar({ length: 36 }).primaryKey().notNull(),
         provider: varchar({ length: 50 }).notNull(),
-        provider_id: varchar({ length: 50 }).notNull(),
+        providerId: varchar('provider_id', { length: 50 }).notNull(),
         userId: varchar('user_id', { length: 36 }).notNull(),
         createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
         updatedAt: timestamp('updated_at', { mode: 'string' }),
@@ -82,60 +145,10 @@ export const accounts = pgTable(
             foreignColumns: [users.id],
             name: 'user_accounts_user_id_fkey',
         }).onDelete('cascade'),
-    ],
-)
-
-export const pets = pgTable(
-    'pets',
-    {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
-        name: varchar({ length: 255 }).notNull(),
-        description: text('description'),
-        profilePictureUrl: text('profile_picture_url'),
-        ownerId: varchar('owner_id', { length: 36 }).notNull(),
-        age: integer('age'),
-        specie: varchar('specie', { length: 50 }),
-        created_at: timestamp('created_at', { mode: 'string' }).defaultNow(),
-        updated_at: timestamp('updated_at', { mode: 'string' }),
-    },
-    (table) => [
-        foreignKey({
-            columns: [table.ownerId],
-            foreignColumns: [users.id],
-            name: 'user_pets_owner_id_fkey',
-        }),
-    ],
-)
-
-export const business = pgTable('business', {
-    id: varchar({ length: 36 }).primaryKey().notNull(),
-    ownerId: varchar('owner_id', { length: 36 }).notNull(),
-    logoUrl: text('logo_url'),
-    name: varchar({ length: 255 }).notNull(),
-    description: varchar({ length: 500 }),
-    created_at: timestamp('created_at', { mode: 'string' }).defaultNow(),
-    updated_at: timestamp('updated_at', { mode: 'string' }),
-})
-
-export const branches = pgTable(
-    'branches',
-    {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
-        name: varchar({ length: 255 }).notNull(),
-        description: text(),
-        businessId: varchar('business_id', { length: 36 }).notNull(),
-        address: text().notNull(),
-        city: text().notNull(),
-        created_at: timestamp('created_at', { mode: 'string' }).defaultNow(),
-        updated_at: timestamp('updated_at', { mode: 'string' }),
-    },
-    (table) => [
-        foreignKey({
-            columns: [table.businessId],
-            foreignColumns: [business.id],
-            name: 'branches_business_id_fkey',
-        }).onDelete('cascade'),
-        index('branches_city_idx').on(table.city),
+        check('accounts_id_not_null', sql`NOT NULL id`),
+        check('accounts_provider_not_null', sql`NOT NULL provider`),
+        check('accounts_provider_id_not_null', sql`NOT NULL provider_id`),
+        check('accounts_user_id_not_null', sql`NOT NULL user_id`),
     ],
 )
 
@@ -145,13 +158,21 @@ export const branchUsers = pgTable(
         id: varchar({ length: 36 }).primaryKey().notNull(),
         userId: varchar('user_id', { length: 36 }).notNull(),
         branchId: varchar('branch_id', { length: 36 }).notNull(),
-        role: branchUserRoles('role').notNull().default('employee'),
+        role: branchUserRoles().default('employee').notNull(),
         createdAt: timestamp('created_at', { mode: 'string' })
             .defaultNow()
             .notNull(),
-        updated_at: timestamp('updated_at', { mode: 'string' }),
+        updatedAt: timestamp('updated_at', { mode: 'string' }),
     },
     (table) => [
+        index('branch_users_branch_id_idx').using(
+            'btree',
+            table.branchId.asc().nullsLast().op('text_ops'),
+        ),
+        index('branch_users_user_id_idx').using(
+            'btree',
+            table.userId.asc().nullsLast().op('text_ops'),
+        ),
         foreignKey({
             columns: [table.userId],
             foreignColumns: [users.id],
@@ -166,18 +187,62 @@ export const branchUsers = pgTable(
             table.userId,
             table.branchId,
         ),
-        index('branch_users_user_id_idx').on(table.userId),
-        index('branch_users_branch_id_idx').on(table.branchId),
+        check('branch_users_id_not_null', sql`NOT NULL id`),
+        check('branch_users_user_id_not_null', sql`NOT NULL user_id`),
+        check('branch_users_branch_id_not_null', sql`NOT NULL branch_id`),
+        check('branch_users_role_not_null', sql`NOT NULL role`),
+        check('branch_users_created_at_not_null', sql`NOT NULL created_at`),
     ],
 )
 
-export const services = pgTable('services', {
-    id: varchar({ length: 36 }).primaryKey().notNull(),
-    name: varchar({ length: 255 }).notNull(),
-    description: text(),
-    created_at: timestamp('created_at', { mode: 'string' }).defaultNow(),
-    updated_at: timestamp('updated_at', { mode: 'string' }),
-})
+export const business = pgTable(
+    'business',
+    {
+        id: varchar({ length: 36 }).primaryKey().notNull(),
+        ownerId: varchar('owner_id', { length: 36 }).notNull(),
+        logoUrl: text('logo_url'),
+        name: varchar({ length: 255 }).notNull(),
+        description: varchar({ length: 500 }),
+        createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
+        updatedAt: timestamp('updated_at', { mode: 'string' }),
+    },
+    (table) => [
+        foreignKey({
+            columns: [table.ownerId],
+            foreignColumns: [users.id],
+            name: 'business_owner_id_fkey',
+        }).onDelete('cascade'),
+        check('business_id_not_null', sql`NOT NULL id`),
+        check('business_owner_id_not_null', sql`NOT NULL owner_id`),
+        check('business_name_not_null', sql`NOT NULL name`),
+    ],
+)
+
+export const branchesContactInfo = pgTable(
+    'branches_contact_info',
+    {
+        id: varchar({ length: 36 }).primaryKey().notNull(),
+        type: branchesContactInfoTypes().notNull(),
+        value: varchar({ length: 255 }).notNull(),
+        branchId: varchar('branch_id', { length: 36 }).notNull(),
+        createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
+        updatedAt: timestamp('updated_at', { mode: 'string' }),
+    },
+    (table) => [
+        foreignKey({
+            columns: [table.branchId],
+            foreignColumns: [branches.id],
+            name: 'branches_contact_info_branch_id_fkey',
+        }),
+        check('branches_contact_info_id_not_null', sql`NOT NULL id`),
+        check('branches_contact_info_type_not_null', sql`NOT NULL type`),
+        check('branches_contact_info_value_not_null', sql`NOT NULL value`),
+        check(
+            'branches_contact_info_branch_id_not_null',
+            sql`NOT NULL branch_id`,
+        ),
+    ],
+)
 
 export const branchesServices = pgTable(
     'branches_services',
@@ -185,8 +250,8 @@ export const branchesServices = pgTable(
         id: varchar({ length: 36 }).primaryKey().notNull(),
         servicesId: varchar('services_id', { length: 36 }).notNull(),
         branchesId: varchar('branches_id', { length: 36 }).notNull(),
-        created_at: timestamp('created_at', { mode: 'string' }).defaultNow(),
-        updated_at: timestamp('updated_at', { mode: 'string' }),
+        createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
+        updatedAt: timestamp('updated_at', { mode: 'string' }),
     },
     (table) => [
         foreignKey({
@@ -199,44 +264,65 @@ export const branchesServices = pgTable(
             foreignColumns: [branches.id],
             name: 'branches_services_branches_id_fkey',
         }).onDelete('cascade'),
+        check('branches_services_id_not_null', sql`NOT NULL id`),
+        check(
+            'branches_services_services_id_not_null',
+            sql`NOT NULL services_id`,
+        ),
+        check(
+            'branches_services_branches_id_not_null',
+            sql`NOT NULL branches_id`,
+        ),
     ],
 )
 
-export const branchesHours = pgTable(
-    'branches_hours',
+export const pets = pgTable(
+    'pets',
     {
         id: varchar({ length: 36 }).primaryKey().notNull(),
-        branchId: varchar('branch_id', { length: 36 }).notNull(),
-        dayOfWeek: integer('day_of_week').notNull(),
-        openTime: time('open_time').notNull(),
-        closeTime: time('close_time').notNull(),
-        isClosed: boolean('is_closed').notNull(),
-    },
-    (table) => [
-        foreignKey({
-            columns: [table.branchId],
-            foreignColumns: [branches.id],
-            name: 'branches_hours_branch_id_fkey',
-        }).onDelete('cascade'),
-        index('branches_hours_is_closed_idx').on(table.isClosed),
-    ],
-)
-
-export const branchesContactInfo = pgTable(
-    'branches_contact_info',
-    {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
-        type: branchesContactInfoTypes('type').notNull(),
-        value: varchar('value', { length: 255 }).notNull(),
-        branchId: varchar('branch_id', { length: 36 }).notNull().unique(),
+        name: varchar({ length: 255 }).notNull(),
+        description: text(),
+        profilePictureUrl: text('profile_picture_url'),
+        ownerId: varchar('owner_id', { length: 36 }).notNull(),
+        age: integer(),
+        specie: varchar({ length: 50 }),
         createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
         updatedAt: timestamp('updated_at', { mode: 'string' }),
     },
     (table) => [
         foreignKey({
-            columns: [table.branchId],
-            foreignColumns: [branches.id],
-            name: 'branches_contact_info_branch_id_fkey',
+            columns: [table.ownerId],
+            foreignColumns: [users.id],
+            name: 'user_pets_owner_id_fkey',
         }),
+        check('pets_id_not_null', sql`NOT NULL id`),
+        check('pets_name_not_null', sql`NOT NULL name`),
+        check('pets_owner_id_not_null', sql`NOT NULL owner_id`),
+    ],
+)
+
+export const sessions = pgTable(
+    'sessions',
+    {
+        id: varchar({ length: 36 }).primaryKey().notNull(),
+        userId: varchar('user_id', { length: 36 }).notNull(),
+        token: text().notNull(),
+        expiresAt: timestamp('expires_at', { mode: 'string' }).notNull(),
+        ipAddress: varchar('ip_address', { length: 50 }),
+        userAgent: varchar('user_agent', { length: 255 }),
+        createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
+        updatedAt: timestamp('updated_at', { mode: 'string' }),
+    },
+    (table) => [
+        foreignKey({
+            columns: [table.userId],
+            foreignColumns: [users.id],
+            name: 'user_sessions_user_id_fkey',
+        }).onDelete('cascade'),
+        unique('user_sessions_token_key').on(table.token),
+        check('sessions_id_not_null', sql`NOT NULL id`),
+        check('sessions_user_id_not_null', sql`NOT NULL user_id`),
+        check('sessions_expires_at_not_null', sql`NOT NULL expires_at`),
+        check('sessions_token_not_null', sql`NOT NULL token`),
     ],
 )

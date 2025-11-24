@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { Module, forwardRef } from '@nestjs/common'
 import { AuthController } from './auth.controller'
 import { AuthService } from './auth.service'
 import { GoogleService } from './google/google.service'
@@ -14,7 +14,8 @@ import { UserModule } from '@/user/user.module'
             secret: process.env.SECRET_TOKEN,
             signOptions: { expiresIn: '60s' },
         }),
-        UserModule,
+        forwardRef(() => UserModule),
     ],
+    exports: [AuthService],
 })
 export class AuthModule {}

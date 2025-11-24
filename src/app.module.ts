@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module'
 import { AuthController } from './auth/auth.controller'
 import { AuthService } from './auth/auth.service'
 import { GoogleService } from './auth/google/google.service'
+import { SessionModule } from './session/session.module'
 
 @Module({
     imports: [
@@ -48,6 +49,7 @@ import { GoogleService } from './auth/google/google.service'
         UserModule,
         DbModule,
         AuthModule,
+        SessionModule,
     ],
     controllers: [AuthController],
     providers: [AuthService, GoogleService],

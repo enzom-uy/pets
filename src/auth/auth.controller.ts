@@ -1,8 +1,19 @@
-import { Controller, Get, Query, Redirect, Res } from '@nestjs/common'
+import {
+    Controller,
+    Get,
+    Post,
+    Query,
+    Redirect,
+    Req,
+    Res,
+} from '@nestjs/common'
 import { AuthService } from './auth.service'
 import { PinoLogger } from 'nestjs-pino'
 import { JwtService } from '@nestjs/jwt'
-import { Response } from 'express'
+import { Response, Request } from 'express'
+import * as schema from 'drizzle/schema'
+
+export const CREATE_PROFILE_URL = 'http://localhost:4321/create-profile'
 
 @Controller('auth')
 export class AuthController {
@@ -22,14 +33,23 @@ export class AuthController {
     async googleAuthCallback(
         @Query('code') code: string,
         @Res() res: Response,
+        @Req() req: Request,
     ) {
         const { email, name: username } =
             await this.authService.getAuthClientData(code)
 
         this.logger.info({ username, email }, 'Login with google data')
 
+        const userAgent = req.headers['user-agent'] as string
+        const ipAddress = req.ip || 'unknown'
+
         const { isNewUser, tempToken } =
-            await this.authService.loginOrRegisterUser(email, username)
+            await this.authService.loginOrRegisterUser(
+                email,
+                username,
+                userAgent,
+                ipAddress,
+            )
 
         if (isNewUser && tempToken) {
             // TODO: Additional sign-in logic
@@ -39,12 +59,17 @@ export class AuthController {
                 sameSite: 'lax',
                 maxAge: 5 * 60 * 1000,
             })
-            return res.redirect('http://localhost:3000/creating-profile')
+            return res.redirect(CREATE_PROFILE_URL)
         }
+        return res.redirect('http://localhost:4321/')
     }
 
     @Get('signed-in')
     signedIn(): { signedIn: boolean } {
         return { signedIn: true }
     }
+
+    // TODO: this
+    @Post('create-session')
+    async createUserSession(@Query() user: typeof schema.users.$inferSelect) {}
 }
