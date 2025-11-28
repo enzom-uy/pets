@@ -2,6 +2,7 @@ import {
     Inject,
     Injectable,
     InternalServerErrorException,
+    Logger,
 } from '@nestjs/common'
 import { GoogleService } from './google/google.service'
 import { JwtService } from '@nestjs/jwt'
@@ -22,6 +23,8 @@ interface LoginOrRegisterResponse {
 
 @Injectable()
 export class AuthService {
+    private readonly logger = new Logger(AuthService.name)
+
     constructor(
         @Inject(DATABASE_CONNECTION)
         private db: NodePgDatabase<typeof schema>,
@@ -114,8 +117,12 @@ export class AuthService {
 
             return { userId, refresh_token, access_token }
         } catch (err) {
+            this.logger.error(
+                `Error generating tokens for user ${userId}: ${err}`,
+                err instanceof Error ? err.stack : undefined,
+            )
             throw new InternalServerErrorException(
-                `Error creating session: ${err}`,
+                'Could not generate tokens. Please try again later.',
             )
         }
     }
@@ -159,8 +166,12 @@ export class AuthService {
 
             return { newAccessToken, newRefreshToken }
         } catch (error) {
+            this.logger.error(
+                `Error refreshing tokens: ${error}`,
+                error instanceof Error ? error.stack : undefined,
+            )
             throw new InternalServerErrorException(
-                `Error refreshing session: ${error}`,
+                'Could not refresh tokens. Please try again later.',
             )
         }
     }

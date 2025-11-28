@@ -14,6 +14,6 @@ import { UserModule } from '@/user/user.module'
         }),
         forwardRef(() => UserModule),
     ],
-    exports: [AuthService],
+    exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

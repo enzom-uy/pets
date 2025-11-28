@@ -1,8 +1,10 @@
 import { DATABASE_CONNECTION } from '@/db/db.module'
 import {
+    ConflictException,
     Inject,
     Injectable,
     InternalServerErrorException,
+    Logger,
 } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
@@ -12,13 +14,14 @@ export type User = any
 
 @Injectable()
 export class UserService {
+    private readonly logger = new Logger(UserService.name)
+
     constructor(
         @Inject(DATABASE_CONNECTION)
         private db: NodePgDatabase<typeof schema>,
     ) {}
 
     async findByEmail(email: string) {
-        console.log('Email received in findByEmail: ', email)
         try {
             const [user] = await this.db
                 .select()
@@ -26,8 +29,12 @@ export class UserService {
                 .where(eq(schema.users.email, email))
             return user || null
         } catch (error) {
+            this.logger.error(
+                `Error finding user by email ${email}: ${error}`,
+                error instanceof Error ? error.stack : undefined,
+            )
             throw new InternalServerErrorException(
-                `Error finding user by email: ${error}`,
+                'Could not find user. Please try again later.',
             )
         }
     }
@@ -40,7 +47,7 @@ export class UserService {
         const db = tx || this.db
         const userExists = await this.findByEmail(user.email)
         if (userExists) {
-            throw new Error('User already exists')
+            throw new ConflictException('User already exists')
         }
         try {
             const createdUser = await db
@@ -50,8 +57,12 @@ export class UserService {
 
             return createdUser[0]
         } catch (error) {
+            this.logger.error(
+                `Error creating user ${user.email}: ${error}`,
+                error instanceof Error ? error.stack : undefined,
+            )
             throw new InternalServerErrorException(
-                `Error creating user: ${error}`,
+                'Could not create user. Please try again later.',
             )
         }
     }

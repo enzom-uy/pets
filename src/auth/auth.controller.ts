@@ -42,8 +42,8 @@ export class AuthController {
 
     @Get('check')
     @UseGuards(AuthGuard)
-    check() {
-        return 'ok'
+    check(@Res() res: Response) {
+        return res.json({ message: 'OK' })
     }
 
     @Get('google/callback')

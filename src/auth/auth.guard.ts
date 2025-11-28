@@ -19,7 +19,7 @@ export class AuthGuard implements CanActivate {
         const request = context.switchToHttp().getRequest<Request>()
         const cookies = request.cookies
 
-        const accessToken = cookies['access_token']
+        const accessToken = cookies['access_token'] as string | undefined
 
         if (!accessToken) {
             this.logger.warn('No access token found')

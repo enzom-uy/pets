@@ -3,6 +3,7 @@ import {
     Inject,
     Injectable,
     InternalServerErrorException,
+    Logger,
 } from '@nestjs/common'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import * as schema from 'drizzle/schema'
@@ -10,6 +11,8 @@ import { v4 as uuid } from 'uuid'
 
 @Injectable()
 export class SessionService {
+    private readonly logger = new Logger(SessionService.name)
+
     constructor(
         @Inject(DATABASE_CONNECTION)
         private db: NodePgDatabase<typeof schema>,
@@ -38,11 +41,14 @@ export class SessionService {
                     ).toISOString(),
                 })
                 .returning()
-            console.log(session[0])
             return session[0]
         } catch (error) {
+            this.logger.error(
+                `Error creating session for user ${userId}: ${error}`,
+                error instanceof Error ? error.stack : undefined,
+            )
             throw new InternalServerErrorException(
-                `Error creating session: ${error}`,
+                'Could not create session. Please try again later.',
             )
         }
     }
