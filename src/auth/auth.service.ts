@@ -80,11 +80,19 @@ export class AuthService {
         console.log('User already exists, loging user...')
         const { access_token, refresh_token } = await this.generateUserTokens(
             userExists.id,
+            ip,
+            userAgent,
         )
         return { isNewUser, access_token, refresh_token }
     }
 
-    async generateUserTokens(userId: string) {
+    async generateUserTokens(
+        userId: string,
+        ipAddress?: string,
+        userAgent?: string,
+        tx?: NodePgDatabase<typeof schema>,
+    ) {
+        const db = tx || this.db
         try {
             const sessionId = uuid()
             const accessTokenPayload: AccessTokenPayload = {
@@ -114,6 +122,17 @@ export class AuthService {
                     secret: process.env.REFRESH_SECRET_TOKEN,
                 },
             )
+
+            await db.insert(schema.sessions).values({
+                id: sessionId,
+                userId,
+                token: refresh_token,
+                expiresAt: new Date(
+                    Date.now() + 1000 * 60 * 60 * 24 * 30,
+                ).toISOString(),
+                ipAddress,
+                userAgent,
+            })
 
             return { userId, refresh_token, access_token }
         } catch (err) {
