@@ -212,6 +212,7 @@ export const business = pgTable(
             foreignColumns: [users.id],
             name: 'business_owner_id_fkey',
         }).onDelete('cascade'),
+        unique('business_owner_name_unique').on(table.ownerId, table.name),
         check('business_id_not_null', sql`NOT NULL id`),
         check('business_owner_id_not_null', sql`NOT NULL owner_id`),
         check('business_name_not_null', sql`NOT NULL name`),
