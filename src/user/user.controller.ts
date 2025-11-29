@@ -3,7 +3,6 @@ import { UserService } from './user.service'
 import { Request, Response } from 'express'
 import * as schema from 'drizzle/schema'
 import { randomUUID } from 'crypto'
-import { SessionService } from '@/session/session.service'
 import { AuthService } from '@/auth/auth.service'
 import { DATABASE_CONNECTION } from '@/db/db.module'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
@@ -25,7 +24,6 @@ export class UserController {
     constructor(
         @Inject(DATABASE_CONNECTION) private db: NodePgDatabase<typeof schema>,
         private readonly userService: UserService,
-        private readonly sessionService: SessionService,
         private readonly authService: AuthService,
     ) {}
 
@@ -33,50 +31,40 @@ export class UserController {
     async createUser(@Req() req: Request, @Res() res: Response) {
         const { name, email, city, address } = req.body as UserFromForm
 
-        try {
-            const result = await this.db.transaction(async (tx) => {
-                const user: typeof schema.users.$inferInsert = {
-                    id: randomUUID(),
-                    name,
-                    email,
-                    city,
-                    address,
-                }
+        await this.db.transaction(async (tx) => {
+            const user: typeof schema.users.$inferInsert = {
+                id: randomUUID(),
+                name,
+                email,
+                city,
+                address,
+            }
 
-                const createdUser = await this.userService.createUser(user)
-                const userTokens = await this.authService.generateUserTokens(
-                    createdUser.id,
-                )
-                const userIp = req.ip || 'unknown'
-                const userAgent = req.get('user-agent') || 'unknown'
-                const userSession = await this.sessionService.createSession(
-                    createdUser.id,
-                    userTokens.refresh_token,
-                    userIp,
-                    userAgent,
-                    tx,
-                )
+            const createdUser = await this.userService.createUser(user, tx)
+            const userIp = req.ip || 'unknown'
+            const userAgent = req.get('user-agent') || 'unknown'
 
-                res.cookie('refresh_token', userTokens.refresh_token, {
-                    httpOnly: true,
-                    secure: true,
-                    sameSite: 'strict',
-                    maxAge: THIRTY_DAYS_MILISECONDS,
-                })
-                res.cookie('access_token', userTokens.access_token, {
-                    httpOnly: true,
-                    secure: true,
-                    sameSite: 'strict',
-                    maxAge: ONE_HOUR_MILISECONDS,
-                })
-                res.clearCookie('tempToken', TEMP_TOKEN_COOKIE_OPTIONS)
-                return res
-                    .status(201)
-                    .json({ createdUser, userTokens, userSession })
+            const userTokens = await this.authService.generateUserTokens(
+                createdUser.id,
+                userIp,
+                userAgent,
+                tx,
+            )
+
+            res.cookie('refresh_token', userTokens.refresh_token, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'strict',
+                maxAge: THIRTY_DAYS_MILISECONDS,
             })
-        } catch (error) {
-            console.error('Error creating user:', error)
-            return res.status(500).json({ error: 'Failed to create user' })
-        }
+            res.cookie('access_token', userTokens.access_token, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'strict',
+                maxAge: ONE_HOUR_MILISECONDS,
+            })
+            res.clearCookie('tempToken', TEMP_TOKEN_COOKIE_OPTIONS)
+            return res.status(201).json({ createdUser, userTokens })
+        })
     }
 }
