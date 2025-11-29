@@ -1,39 +1,31 @@
 import {
+    Body,
     Controller,
-    Get,
-    Param,
-    Query,
-    Req,
+    Post,
     Res,
     UseGuards,
+    UsePipes,
+    ValidationPipe,
 } from '@nestjs/common'
 import { BusinessService } from './business.service'
 import { AuthGuard } from '@/auth/auth.guard'
 import { Response } from 'express'
+import { CreateBusinessDto } from './dto/create-business.dto'
+import { Error } from 'postgres'
 
 @Controller('business')
 export class BusinessController {
     constructor(private readonly businessService: BusinessService) {}
 
-    @Get('create')
-    // @UseGuards(AuthGuard)
-    createBusiness(
-        @Query('user_id') userId: string,
-        @Req() req: Request,
+    @Post('create')
+    @UseGuards(AuthGuard)
+    @UsePipes(new ValidationPipe({ whitelist: true }))
+    async createBusiness(
+        @Body() business: CreateBusinessDto,
         @Res() res: Response,
     ) {
-        if (!userId) {
-            return res.status(400).json({
-                error: 'user_id query parameter is required',
-            })
-        }
-
-        if (userId.length !== 36) {
-            return res.status(400).json({
-                error: 'user_id must be a valid UUID',
-            })
-        }
-
-        res.json({ userId: userId })
+        const createdBusiness =
+            await this.businessService.createBusiness(business)
+        return res.status(201).json(createdBusiness)
     }
 }

@@ -5,7 +5,7 @@ import {
     Injectable,
     InternalServerErrorException,
 } from '@nestjs/common'
-import { and, eq, or, SQL } from 'drizzle-orm'
+import { and, eq, SQL } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import * as schema from 'drizzle/schema'
 import { PinoLogger } from 'nestjs-pino'
@@ -43,16 +43,6 @@ export class BusinessService {
         tx,
     }: CreateBusinessParams) {
         const db = tx || this.db
-
-        const [businessExists] = await this.findBusiness({
-            name,
-            ownerId: userId,
-        })
-
-        if (businessExists) {
-            throw new ConflictException('Business already exists')
-        }
-
         try {
             const businessId = uuid()
             const business: typeof schema.business.$inferInsert = {
