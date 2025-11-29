@@ -1,6 +1,14 @@
-import { IsOptional, IsString, IsUrl, IsUUID, MinLength } from 'class-validator'
+import {
+    IsArray,
+    IsOptional,
+    IsString,
+    IsUrl,
+    IsUUID,
+    MinLength,
+} from 'class-validator'
 
 export class CreateBusinessDto {
+    // Business data
     @IsUUID()
     userId: string
     @IsString()
@@ -14,4 +22,18 @@ export class CreateBusinessDto {
     @IsOptional()
     @IsUrl()
     logoUrl: string
+
+    // Business's branch data
+    @IsString()
+    @MinLength(4, { message: 'Branch name must have at least 4 characters.' })
+    branchName: string
+    @IsString()
+    @IsOptional()
+    branchDescription: string
+    @IsString()
+    city: string
+    @IsString()
+    address: string
+    @IsArray()
+    services: string[]
 }

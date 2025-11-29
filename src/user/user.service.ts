@@ -27,7 +27,7 @@ export class UserService {
                 .select()
                 .from(schema.users)
                 .where(eq(schema.users.email, email))
-            return user || null
+            return user
         } catch (error) {
             this.logger.error(
                 `Error finding user by email ${email}: ${error}`,
