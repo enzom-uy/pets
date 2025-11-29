@@ -5,11 +5,11 @@ import {
     Injectable,
     InternalServerErrorException,
 } from '@nestjs/common'
+import { and, eq, or, SQL } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import * as schema from 'drizzle/schema'
 import { PinoLogger } from 'nestjs-pino'
 import { DatabaseError } from 'pg'
-import { PostgresError } from 'postgres'
 import { v4 as uuid } from 'uuid'
 
 interface CreateBusinessParams {
@@ -17,6 +17,13 @@ interface CreateBusinessParams {
     name: string
     logoUrl?: string
     description: string
+    tx?: NodePgDatabase<typeof schema>
+}
+
+interface FindBusinessParams {
+    name?: string
+    id?: string
+    ownerId?: string
     tx?: NodePgDatabase<typeof schema>
 }
 
@@ -37,8 +44,10 @@ export class BusinessService {
     }: CreateBusinessParams) {
         const db = tx || this.db
 
-        // TODO: find business
-        const businessExists = false || true
+        const [businessExists] = await this.findBusiness({
+            name,
+            ownerId: userId,
+        })
 
         if (businessExists) {
             throw new ConflictException('Business already exists')
@@ -72,6 +81,48 @@ export class BusinessService {
             )
             throw new InternalServerErrorException(
                 `Could not create business. Please try again later.`,
+            )
+        }
+    }
+
+    async findBusiness({ name, id, ownerId, tx }: FindBusinessParams) {
+        const db = tx || this.db
+
+        if (!name && !id && !ownerId) {
+            return []
+        }
+
+        try {
+            const conditions: SQL[] = []
+
+            if (name) {
+                conditions.push(eq(schema.business.name, name))
+            }
+
+            if (id) {
+                conditions.push(eq(schema.business.id, id))
+            }
+
+            if (ownerId) {
+                conditions.push(eq(schema.business.ownerId, ownerId))
+            }
+
+            const business = await db
+                .select()
+                .from(schema.business)
+                .where(and(...conditions))
+                .limit(1)
+
+            return business
+        } catch (err) {
+            const error = err as Error
+            this.logger.error(
+                `Error finding business: ${error.message}`,
+                error.stack,
+            )
+
+            throw new InternalServerErrorException(
+                'Could not fetch business details.',
             )
         }
     }
