@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import * as schema from 'drizzle/schema'
-import { v4 as uuid } from 'uuid'
 
 @Injectable()
 export class SessionService {
@@ -27,11 +26,9 @@ export class SessionService {
     ) {
         const db = tx || this.db
         try {
-            const id = uuid()
             const session = await db
                 .insert(schema.sessions)
                 .values({
-                    id,
                     userId,
                     token: refreshToken,
                     ipAddress: userIp,

@@ -2,7 +2,6 @@ import {
     Inject,
     Injectable,
     InternalServerErrorException,
-    Logger,
 } from '@nestjs/common'
 import { GoogleService } from './google/google.service'
 import { JwtService } from '@nestjs/jwt'
@@ -12,6 +11,7 @@ import * as schema from 'drizzle/schema'
 import { UserService } from '@/user/user.service'
 import { v4 as uuid } from 'uuid'
 import { AccessTokenPayload, RefreshTokenPayload } from './types/types'
+import { PinoLogger } from 'nestjs-pino'
 
 interface LoginOrRegisterResponse {
     isNewUser: boolean
@@ -23,8 +23,6 @@ interface LoginOrRegisterResponse {
 
 @Injectable()
 export class AuthService {
-    private readonly logger = new Logger(AuthService.name)
-
     constructor(
         @Inject(DATABASE_CONNECTION)
         private db: NodePgDatabase<typeof schema>,
@@ -32,6 +30,7 @@ export class AuthService {
         private googleService: GoogleService,
         private jwtService: JwtService,
         private userService: UserService,
+        private logger: PinoLogger,
     ) {}
 
     googleAuth(): { url: string } {

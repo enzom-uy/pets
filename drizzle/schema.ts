@@ -11,6 +11,7 @@ import {
     text,
     unique,
     pgEnum,
+    uuid,
 } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
@@ -27,8 +28,8 @@ export const branchesContactInfoTypes = pgEnum('branches_contact_info_types', [
 export const branchesHours = pgTable(
     'branches_hours',
     {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
-        branchId: varchar('branch_id', { length: 36 }).notNull(),
+        id: uuid().defaultRandom().primaryKey().notNull(),
+        branchId: uuid('branch_id').notNull(),
         dayOfWeek: integer('day_of_week').notNull(),
         openTime: time('open_time').notNull(),
         closeTime: time('close_time').notNull(),
@@ -56,8 +57,8 @@ export const branchesHours = pgTable(
 export const services = pgTable(
     'services',
     {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
-        name: varchar({ length: 255 }).notNull(),
+        id: uuid().defaultRandom().primaryKey(),
+        name: varchar({ length: 255 }).notNull().unique(),
         createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
         updatedAt: timestamp('updated_at', { mode: 'string' }),
     },
@@ -70,10 +71,10 @@ export const services = pgTable(
 export const branches = pgTable(
     'branches',
     {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
+        id: uuid().defaultRandom().primaryKey().notNull(),
         name: varchar({ length: 255 }).notNull(),
         description: text(),
-        businessId: varchar('business_id', { length: 36 }).notNull(),
+        businessId: uuid('business_id').notNull(),
         city: text().notNull(),
         address: text().notNull(),
         createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
@@ -100,7 +101,7 @@ export const branches = pgTable(
 export const users = pgTable(
     'users',
     {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
+        id: uuid().defaultRandom().primaryKey().notNull(),
         name: varchar({ length: 50 }).notNull(),
         email: varchar({ length: 255 }).notNull(),
         profilePictureUrl: text('profile_picture_url'),
@@ -132,10 +133,10 @@ export const users = pgTable(
 export const accounts = pgTable(
     'accounts',
     {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
+        id: uuid().defaultRandom().primaryKey().notNull(),
         provider: varchar({ length: 50 }).notNull(),
         providerId: varchar('provider_id', { length: 50 }).notNull(),
-        userId: varchar('user_id', { length: 36 }).notNull(),
+        userId: uuid('user_id').notNull(),
         createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
         updatedAt: timestamp('updated_at', { mode: 'string' }),
     },
@@ -155,9 +156,9 @@ export const accounts = pgTable(
 export const branchUsers = pgTable(
     'branch_users',
     {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
-        userId: varchar('user_id', { length: 36 }).notNull(),
-        branchId: varchar('branch_id', { length: 36 }).notNull(),
+        id: uuid().defaultRandom().primaryKey().notNull(),
+        userId: uuid('user_id').notNull(),
+        branchId: uuid('branch_id').notNull(),
         role: branchUserRoles().default('employee').notNull(),
         createdAt: timestamp('created_at', { mode: 'string' })
             .defaultNow()
@@ -198,8 +199,8 @@ export const branchUsers = pgTable(
 export const business = pgTable(
     'business',
     {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
-        ownerId: varchar('owner_id', { length: 36 }).notNull(),
+        id: uuid().defaultRandom().primaryKey().notNull(),
+        ownerId: uuid('owner_id').notNull(),
         logoUrl: text('logo_url'),
         name: varchar({ length: 255 }).notNull(),
         description: varchar({ length: 500 }),
@@ -222,10 +223,10 @@ export const business = pgTable(
 export const branchesContactInfo = pgTable(
     'branches_contact_info',
     {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
+        id: uuid().defaultRandom().primaryKey().notNull(),
         type: branchesContactInfoTypes().notNull(),
         value: varchar({ length: 255 }).notNull(),
-        branchId: varchar('branch_id', { length: 36 }).notNull(),
+        branchId: uuid('branch_id').notNull(),
         createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
         updatedAt: timestamp('updated_at', { mode: 'string' }),
     },
@@ -248,9 +249,9 @@ export const branchesContactInfo = pgTable(
 export const branchesServices = pgTable(
     'branches_services',
     {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
-        servicesId: varchar('services_id', { length: 36 }).notNull(),
-        branchesId: varchar('branches_id', { length: 36 }).notNull(),
+        id: uuid().defaultRandom().primaryKey().notNull(),
+        servicesId: uuid('services_id').notNull(),
+        branchesId: uuid('branches_id').notNull(),
         createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
         updatedAt: timestamp('updated_at', { mode: 'string' }),
     },
@@ -280,11 +281,11 @@ export const branchesServices = pgTable(
 export const pets = pgTable(
     'pets',
     {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
+        id: uuid().defaultRandom().primaryKey().notNull(),
         name: varchar({ length: 255 }).notNull(),
         description: text(),
         profilePictureUrl: text('profile_picture_url'),
-        ownerId: varchar('owner_id', { length: 36 }).notNull(),
+        ownerId: uuid('owner_id').notNull(),
         age: integer(),
         specie: varchar({ length: 50 }),
         createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
@@ -305,8 +306,8 @@ export const pets = pgTable(
 export const sessions = pgTable(
     'sessions',
     {
-        id: varchar({ length: 36 }).primaryKey().notNull(),
-        userId: varchar('user_id', { length: 36 }).notNull(),
+        id: uuid().defaultRandom().primaryKey().notNull(),
+        userId: uuid('user_id').notNull(),
         token: text().notNull(),
         expiresAt: timestamp('expires_at', { mode: 'string' }).notNull(),
         ipAddress: varchar('ip_address', { length: 50 }),

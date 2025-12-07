@@ -10,7 +10,6 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import * as schema from 'drizzle/schema'
 import { PinoLogger } from 'nestjs-pino'
 import { DatabaseError } from 'pg'
-import { v4 as uuid } from 'uuid'
 
 interface CreateBusinessParams {
     userId: string
@@ -44,9 +43,7 @@ export class BusinessService {
     }: CreateBusinessParams) {
         const db = tx || this.db
         try {
-            const businessId = uuid()
             const business: typeof schema.business.$inferInsert = {
-                id: businessId,
                 name,
                 description,
                 logoUrl: logoUrl ? logoUrl : undefined,
